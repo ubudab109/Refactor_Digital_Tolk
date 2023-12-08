@@ -157,7 +157,7 @@ class BookingRepository extends BaseRepository
      * @param string $consumer_type
      * @return array
      */
-    private function prepareBookingData($data, $immediatetime, $consumer_type)
+    private function prepareBookingData($data, $immediatetime)
     {
         if (empty($data['customer_phone_type'])) {
             $data['customer_phone_type'] = 'no';
@@ -170,10 +170,8 @@ class BookingRepository extends BaseRepository
             $data['due'] = $due_carbon->format('Y-m-d H:i:s');
             $data['immediate'] = 'yes';
             $data['customer_phone_type'] = 'yes';
-            $response['type'] = 'immediate';
         } else {
             $due = $data['due_date'] . " " . $data['due_time'];
-            $response['type'] = 'regular';
             $due_carbon = Carbon::createFromFormat('m/d/Y H:i', $due);
             $data['due'] = $due_carbon->format('Y-m-d H:i:s');
 
@@ -191,7 +189,7 @@ class BookingRepository extends BaseRepository
      * @param string $consumer_type
      * @return array
      */
-    private function validateBookingData($data, $consumer_type)
+    private function validateBookingData($data)
     {
         if (!isset($data['from_language_id'])) {
             return ['status' => 'fail', 'message' => "Du måste fylla in alla fält", 'field_name' => "from_language_id"];
@@ -1602,8 +1600,12 @@ class BookingRepository extends BaseRepository
                 $allJobs->orderBy('created_at', 'asc');
             }
         }
-
-        if ($cuser && $cuser->user_type == env('SUPERADMIN_ROLE_ID')) {
+        /**
+         * Better use config() function instead of env()
+         * for example, we can add role config on app/config then returning the key and value of the role
+         * after that we can use `config('role.SUPERADMIN_ROLE_ID');
+         */
+        if ($cuser && $cuser->user_type == config('role.SUPERADMIN_ROLE_ID')) {
 
             if (isset($requestdata['expired_at']) && $requestdata['expired_at'] != '') {
                 $allJobs->where('expired_at', '>=', $requestdata['expired_at']);
@@ -1682,8 +1684,6 @@ class BookingRepository extends BaseRepository
                 }
             }
         }
-
-
         $allJobs->orderBy('created_at', 'desc');
         $allJobs->with('user', 'language', 'feedback.user', 'translatorJobRel.user', 'distance');
         if ($limit == 'all') $allJobs = $allJobs->get();
